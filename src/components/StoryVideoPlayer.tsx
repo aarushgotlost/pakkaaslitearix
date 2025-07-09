@@ -15,7 +15,7 @@ type TextSize = 'small' | 'medium' | 'large';
 
 const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState<Speed>('medium');
+  const [speed, setSpeed] = useState<Speed>('slow'); // Default to slow
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [textSize, setTextSize] = useState<TextSize>('medium');
   const [showSettings, setShowSettings] = useState(false);
@@ -34,11 +34,11 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
-  // Speed configurations (pixels per second)
+  // Much slower speed configurations (pixels per second) - SIGNIFICANTLY REDUCED
   const speedConfig = {
-    slow: 30,
-    medium: 50,
-    fast: 80
+    slow: 15,    // Very slow - was 30
+    medium: 25,  // Slow - was 50  
+    fast: 40     // Medium - was 80
   };
 
   // Aspect ratio configurations
@@ -100,23 +100,23 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
     }
   };
 
-  // Calculate total duration based on content length and speed
+  // Calculate total duration based on content length and speed - MUCH LONGER NOW
   useEffect(() => {
     if (contentRef.current && aiTitle) {
       const contentHeight = contentRef.current.scrollHeight;
       const containerHeight = window.innerHeight;
-      const totalDistance = contentHeight + containerHeight + 300;
+      const totalDistance = contentHeight + containerHeight + 500; // Added more buffer
       const pixelsPerSecond = speedConfig[speed];
       const scrollTime = totalDistance / pixelsPerSecond;
-      const titleTime = 4;
-      const fadeTime = 2;
-      const creditsTime = 3;
+      const titleTime = 6;    // Increased from 4 to 6 seconds
+      const fadeTime = 3;     // Increased from 2 to 3 seconds  
+      const creditsTime = 5;  // Increased from 3 to 5 seconds
       
       setDuration(Math.ceil(titleTime + fadeTime + scrollTime + creditsTime));
     }
   }, [content, speed, aiTitle]);
 
-  // Animation loop
+  // Animation loop with slower timing
   useEffect(() => {
     if (!isPlaying || !aiTitle) return;
 
@@ -134,13 +134,13 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
 
       const pixelsPerSecond = speedConfig[speed];
 
-      // Title animation: shows for 4 seconds, then fades out over 2 seconds
+      // Title animation: shows for 6 seconds, then fades out over 3 seconds
       if (titleRef.current) {
-        if (elapsed < 4) {
+        if (elapsed < 6) {
           titleRef.current.style.transform = 'translateY(0) scale(1)';
           titleRef.current.style.opacity = '1';
-        } else if (elapsed < 6) {
-          const fadeProgress = (elapsed - 4) / 2;
+        } else if (elapsed < 9) {
+          const fadeProgress = (elapsed - 6) / 3;
           titleRef.current.style.opacity = (1 - fadeProgress).toString();
           titleRef.current.style.transform = `translateY(-${fadeProgress * 50}px) scale(${1 - fadeProgress * 0.1})`;
         } else {
@@ -149,10 +149,10 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
         }
       }
 
-      // Content animation: starts after title (6 seconds)
+      // Content animation: starts after title (9 seconds instead of 6)
       if (contentRef.current) {
-        if (elapsed >= 6) {
-          const contentElapsed = elapsed - 6;
+        if (elapsed >= 9) {
+          const contentElapsed = elapsed - 9;
           const contentMoveDistance = contentElapsed * pixelsPerSecond;
           const containerHeight = window.innerHeight;
           
@@ -250,22 +250,24 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
       // Start recording
       mediaRecorder.start(100);
       
-      // Calculate proper duration matching the preview
+      // Calculate proper duration matching the preview EXACTLY
       const contentLines = content.split('\n').filter(line => line.trim());
-      const estimatedContentHeight = contentLines.length * textConfig.paragraphSpacing + 1000; // Add buffer
+      const estimatedContentHeight = contentLines.length * textConfig.paragraphSpacing + 2000; // More buffer
       const containerHeight = dimensions.height;
-      const totalDistance = estimatedContentHeight + containerHeight + 300;
+      const totalDistance = estimatedContentHeight + containerHeight + 500;
       const pixelsPerSecond = speedConfig[speed];
       const scrollTime = totalDistance / pixelsPerSecond;
-      const titleTime = 4;
-      const fadeTime = 2;
-      const creditsTime = 3;
+      const titleTime = 6;    // Match preview timing
+      const fadeTime = 3;     // Match preview timing
+      const creditsTime = 5;  // Match preview timing
       const totalDuration = titleTime + fadeTime + scrollTime + creditsTime;
       
-      // Render frames
+      // Render frames with EXACT same timing as preview
       const ctx = canvas.getContext('2d')!;
       const fps = 30;
       const totalFrames = Math.ceil(totalDuration * fps);
+      
+      console.log(`Exporting video: ${totalDuration.toFixed(1)}s (${totalFrames} frames)`);
       
       for (let frame = 0; frame < totalFrames; frame++) {
         const currentTime = frame / fps;
@@ -277,13 +279,13 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Render title phase (0-6 seconds)
-        if (currentTime < 6) {
+        // Render title phase (0-9 seconds) - MATCH PREVIEW TIMING
+        if (currentTime < 9) {
           ctx.fillStyle = 'black';
           ctx.font = `bold ${textConfig.title}px Arial`;
           ctx.textAlign = 'center';
           
-          if (currentTime < 4) {
+          if (currentTime < 6) {
             // Title visible
             ctx.globalAlpha = 1;
             
@@ -317,8 +319,8 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
             });
             
           } else {
-            // Title fading out
-            const fadeProgress = (currentTime - 4) / 2;
+            // Title fading out (6-9 seconds)
+            const fadeProgress = (currentTime - 6) / 3;
             ctx.globalAlpha = 1 - fadeProgress;
             
             // Wrap title text
@@ -353,9 +355,9 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
           ctx.globalAlpha = 1;
         }
         
-        // Render content phase (6+ seconds)
-        if (currentTime >= 6) {
-          const contentTime = currentTime - 6;
+        // Render content phase (9+ seconds) - MATCH PREVIEW TIMING
+        if (currentTime >= 9) {
+          const contentTime = currentTime - 9;
           const scrollOffset = contentTime * pixelsPerSecond;
           
           ctx.fillStyle = 'black';
@@ -363,7 +365,7 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
           ctx.textAlign = 'center';
           
           const lines = content.split('\n').filter(line => line.trim());
-          let yPosition = canvas.height - scrollOffset + 100;
+          let yPosition = canvas.height - scrollOffset + 200; // More starting buffer
           
           lines.forEach((line) => {
             if (yPosition > -100 && yPosition < canvas.height + 100) {
@@ -398,11 +400,11 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
           // Add "The End" at the end
           if (yPosition - scrollOffset < canvas.height / 2) {
             ctx.font = `bold ${textConfig.endText}px Arial`;
-            ctx.fillText('The End', canvas.width / 2, yPosition + 100);
+            ctx.fillText('The End', canvas.width / 2, yPosition + 200);
           }
         }
         
-        // Small delay to prevent blocking
+        // Small delay to prevent blocking every 60 frames
         if (frame % 60 === 0) {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
@@ -454,9 +456,9 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="slow">Slow</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="fast">Fast</SelectItem>
+              <SelectItem value="slow">Very Slow</SelectItem>
+              <SelectItem value="medium">Slow</SelectItem>
+              <SelectItem value="fast">Medium</SelectItem>
             </SelectContent>
           </Select>
 
@@ -529,7 +531,7 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="absolute top-16 sm:top-20 left-2 sm:left-4 z-40 bg-white rounded-lg shadow-xl border border-gray-300 p-4 min-w-[280px] sm:min-w-[300px] max-w-[calc(100vw-16px)] sm:max-w-none">
+        <div className="absolute top-16 sm:top-20 left-2 sm:left-4 z-50 bg-white rounded-lg shadow-xl border border-gray-300 p-4 min-w-[280px] sm:min-w-[300px] max-w-[calc(100vw-16px)] sm:max-w-none">
           <h3 className="text-lg font-semibold text-black mb-4">Video Settings</h3>
           
           <div className="space-y-4">
@@ -567,6 +569,9 @@ const StoryVideoPlayer: React.FC<StoryVideoPlayerProps> = ({ content, onClose })
               </p>
               <p className="text-xs text-gray-600">
                 Text sizes: Title {textSizeConfig[textSize].title}px, Content {textSizeConfig[textSize].content}px
+              </p>
+              <p className="text-xs text-gray-600">
+                Estimated duration: {formatTime(duration)}
               </p>
             </div>
           </div>
